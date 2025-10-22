@@ -94,7 +94,10 @@ def scrape_company_ads(query):
     return ad_data
 
 def setup_driver():
-    driver = webdriver.Chrome(options=chrome_options)
+    options = webdriver.ChromeOptions()
+    options.add_argument("--user-data-dir=/tmp/unique_profile_" + str(time.time()))
+    driver = webdriver.Chrome(options=options)
+
     driver.implicitly_wait(10)
     wait = WebDriverWait(driver, 60)
     return driver, wait
@@ -416,6 +419,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
 
