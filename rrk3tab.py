@@ -16,6 +16,112 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
 genai.configure(api_key=apikey)
 
+# ----------------------------------
+# تنظیمات عمومی
+# ----------------------------------
+st.set_page_config(page_title="RRK Company Extractor", page_icon="🏢", layout="wide")
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+chrome_options = Options()
+#chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1400,1000")
+chrome_options.add_argument("--disable-notifications")
+
+# ----------------------------------
+# توابع Selenium
+# ----------------------------------
+def scrape_company_ads(query):
+    """جمع‌آوری آگهی‌های rrk.ir"""
+    driver, wait = setup_driver()
+    ad_data = []
+
+    try:
+        driver.get("https://www.rrk.ir/")
+        search_box = wait.until(EC.presence_of_element_located((By.ID, "P0_SEARCH_ITEM")))
+        search_box.clear()
+        search_box.send_keys(query)
+        driver.find_element(By.ID, "BTN_ADVANCEDSEARCH").click()
+        time.sleep(3)
+
+        # ورود به بخش آگهی‌ها
+        wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "t-LinksList-link"))).click()
+        time.sleep(5)
+
+        current_page = 1
+        while True:
+            ad_links = get_links(driver)
+            if not ad_links:
+                break
+
+            for tag in ad_links:
+                href = tag.get("href")
+                if not href.startswith("/ords/r/rrs/rrs-front/f-detail-ad"):
+                    continue
+                url = "https://rrk.ir" + href
+
+                driver.execute_script("window.open('');")
+                driver.switch_to.window(driver.window_handles[1])
+                driver.get(url)
+                soup = BeautifulSoup(driver.page_source, "html.parser")
+
+                try:
+                    data = extract_fields(driver, soup)
+                    data["url"] = url
+                    ad_data.append(data)
+                except Exception as e:
+                    logging.warning(f"⚠️ خطا در استخراج آگهی: {e}")
+                finally:
+                    driver.close()
+                    driver.switch_to.window(driver.window_handles[0])
+                    time.sleep(2)
+
+            # صفحه بعد
+            next_buttons = driver.find_elements(By.CSS_SELECTOR, "ul.a-GV-pageSelector-list li button.a-GV-pageButton")
+            next_btn = next((b for b in next_buttons if b.text.isdigit() and int(b.text) == current_page + 1), None)
+            if not next_btn:
+                break
+            driver.execute_script("arguments[0].click();", next_btn)
+            current_page += 1
+            time.sleep(5)
+
+    except Exception as e:
+        logging.error(f"❌ خطا: {e}")
+    finally:
+        driver.quit()
+
+    return ad_data
+
+def setup_driver():
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.implicitly_wait(10)
+    wait = WebDriverWait(driver, 60)
+    return driver, wait
+
+def get_links(driver):
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    return soup.select("a[href*='/ords/r/rrs/rrs-front/f-detail-ad']")
+
+def extract_fields(driver, soup):
+    """استخراج فیلدهای آگهی از صفحه جزئیات"""
+    fields = {
+        "شماره پیگیری": driver.find_element(By.ID, "P28_REFERENCENUMBER").get_attribute("value"),
+        "شماره نامه": driver.find_element(By.ID, "P28_INDIKATORNUMBER").get_attribute("value"),
+        "تاریخ نامه": driver.find_element(By.ID, "P28_SABTDATE").get_attribute("value"),
+        "نام شرکت": driver.find_element(By.ID, "P28_COMPANYNAME").get_attribute("value"),
+        "شناسه ملی شرکت": driver.find_element(By.ID, "P28_SABTNATIONALID").get_attribute("value"),
+        "شماره ثبت": driver.find_element(By.ID, "P28_SABTNUMBER").get_attribute("value"),
+        "شماره روزنامه": driver.find_element(By.ID, "P28_NEWSPAPERNO").get_attribute("value"),
+        "تاریخ روزنامه": driver.find_element(By.ID, "P28_NEWSPAPERDATE").get_attribute("value"),
+        "شماره صفحه روزنامه": driver.find_element(By.ID, "P28_PAGENUMBER").get_attribute("value"),
+        "تعداد نوبت انتشار": driver.find_element(By.ID, "P28_HCNEWSSTAGE").get_attribute("value")
+    }
+    dynamic = soup.select_one("a-dynamic-content")
+    fields["متن آگهی"] = dynamic.get_text(" ", strip=True) if dynamic else soup.get_text(" ", strip=True)
+    return fields
+
 def llm(data):
     # 3️⃣ --- تبدیل کل JSON به رشته (برای جلوگیری از خطای dict) ---
     prompt = json.dumps(data, ensure_ascii=False, indent=2)
@@ -300,3 +406,4 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
