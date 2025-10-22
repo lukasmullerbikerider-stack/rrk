@@ -1,12 +1,26 @@
 import os
+import time
 import json
-import google.generativeai as genai
-import pandas as pd
+import logging
 import streamlit as st
+import pandas as pd
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
-import jdatetime
+from jdatetime import datetime as jdatetime
+# ----------------------------------
+# تنظیمات عمومی
+# ----------------------------------
+st.set_page_config(page_title="RRK Company Extractor", page_icon="🏢", layout="wide")
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 # 1️⃣ --- حذف کامل پیام‌های هشدار و لاگ‌های داخلی ---
 os.environ["GRPC_VERBOSITY"] = "NONE"
 os.environ["GLOG_minloglevel"] = "2"
@@ -15,13 +29,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # 2️⃣ --- تنظیم API Key ---
 apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
 genai.configure(api_key=apikey)
-
-# ----------------------------------
-# تنظیمات عمومی
-# ----------------------------------
-st.set_page_config(page_title="RRK Company Extractor", page_icon="🏢", layout="wide")
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 chrome_options = Options()
 #chrome_options.add_argument("--headless")
@@ -406,4 +413,5 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
