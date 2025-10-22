@@ -21,14 +21,6 @@ from jdatetime import datetime as jdatetime
 st.set_page_config(page_title="RRK Company Extractor", page_icon="🏢", layout="wide")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-# 1️⃣ --- حذف کامل پیام‌های هشدار و لاگ‌های داخلی ---
-os.environ["GRPC_VERBOSITY"] = "NONE"
-os.environ["GLOG_minloglevel"] = "2"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-# 2️⃣ --- تنظیم API Key ---
-apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
-genai.configure(api_key=apikey)
 
 chrome_options = Options()
 #chrome_options.add_argument("--headless")
@@ -130,6 +122,17 @@ def extract_fields(driver, soup):
     return fields
 
 def llm(data):
+    import google.generativeai as genai
+    from google.genai import types
+    # 1️⃣ --- حذف کامل پیام‌های هشدار و لاگ‌های داخلی ---
+    os.environ["GRPC_VERBOSITY"] = "NONE"
+    os.environ["GLOG_minloglevel"] = "2"
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+    # 2️⃣ --- تنظیم API Key ---
+    apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
+    genai.configure(api_key=apikey)
+
     # 3️⃣ --- تبدیل کل JSON به رشته (برای جلوگیری از خطای dict) ---
     prompt = json.dumps(data, ensure_ascii=False, indent=2)
 
@@ -413,5 +416,6 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
