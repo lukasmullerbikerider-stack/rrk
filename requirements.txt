@@ -4,3 +4,4 @@ beautifulsoup4
 selenium
 plotly
 jdatetime
+google-generativeai
