@@ -18,13 +18,6 @@ from jdatetime import datetime as jdatetime
 import subprocess
 import sys
 
-try:
-    import chromedriver_autoinstaller
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "chromedriver_autoinstaller"])
-# Automatically installs the compatible version of ChromeDriver
-chromedriver_autoinstaller.install()
-
 # ----------------------------------
 # تنظیمات عمومی
 # ----------------------------------
@@ -429,6 +422,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
 
