@@ -15,12 +15,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 from jdatetime import datetime as jdatetime
+import chromedriver_autoinstaller
+
+# Automatically installs the compatible version of ChromeDriver
+chromedriver_autoinstaller.install()
+
 # ----------------------------------
 # تنظیمات عمومی
 # ----------------------------------
 st.set_page_config(page_title="RRK Company Extractor", page_icon="🏢", layout="wide")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# Install the necessary libraries
+!pip install selenium
+!apt-get update # For installing Chrome and its dependencies
+!apt-get install -y wget curl unzip
+!wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+!dpkg -i google-chrome-stable_current_amd64.deb
+!apt --fix-broken install -y
 
 chrome_options = Options()
 chrome_options.add_argument("--headless")
@@ -419,6 +432,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
 
