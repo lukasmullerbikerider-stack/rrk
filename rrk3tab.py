@@ -31,7 +31,6 @@ user_data_dir = tempfile.mkdtemp()
 
 # Setup Chrome options
 chrome_options = Options()
-chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
@@ -428,6 +427,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
 
