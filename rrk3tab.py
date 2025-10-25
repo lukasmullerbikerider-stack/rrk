@@ -15,16 +15,13 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 from jdatetime import datetime as jdatetime
-import chromedriver_autoinstaller
 import subprocess
 import sys
 
-# Install selenium if not already installed
 try:
-    import selenium
+    import chromedriver_autoinstaller
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "selenium"])
-    
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "chromedriver_autoinstaller"])
 # Automatically installs the compatible version of ChromeDriver
 chromedriver_autoinstaller.install()
 
@@ -432,6 +429,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت : {e}")
+
 
 
 
