@@ -138,7 +138,7 @@ def extract_fields(driver, soup):
     return fields
 
 # 2️⃣ --- تنظیم API Key ---
-apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
+apikey = "AIzaSyA-50zuEBmGJEutQmlQ0lK8X2RqqpQXkf4"
 # ------------------ توابع کمکی ------------------
 
 def llm(data):
