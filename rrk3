@@ -183,79 +183,132 @@ def shamsi_to_miladi(date_str):
 
 
 def charts(data):
-    """نمایش چارت اعضای شرکت در Streamlit"""
-    if not data or 'اعضای سابق شرکت' not in data:
-        st.error("❌ ساختار داده نامعتبر است.")
+    """نمایش سه نمودار جداگانه و تعاملی از اعضای شرکت"""
+    if not data:
+        st.error("❌ فایل JSON خالی است.")
         return
 
-    df = pd.DataFrame(data['اعضای سابق شرکت'])
-    df['تاریخ_شروع_میلادی'] = df['تاریخ شروع'].apply(shamsi_to_miladi)
-    df['تاریخ_پایان_میلادی'] = df['تاریخ پایان'].apply(shamsi_to_miladi)
+    # ترکیب اعضای فعلی و سابق
+    members = []
+    if 'اعضای فعلی شرکت' in data:
+        members.extend(data['اعضای فعلی شرکت'])
+    if 'اعضای سابق شرکت' in data:
+        members.extend(data['اعضای سابق شرکت'])
 
-    def categorize_position(position):
-        if not isinstance(position, str): return 'سایر'
-        if 'مدیرعامل' in position:
-            return 'مدیرعامل'
-        elif any(x in position for x in ['رئیس', 'نایب', 'عضو هیئت', 'عضو هیات']):
-            return 'هیئت مدیره'
-        elif 'بازرس' in position:
-            return 'بازرس'
-        else:
-            return 'سایر'
+    if len(members) == 0:
+        st.warning("⚠️ هیچ عضوی برای نمایش وجود ندارد.")
+        return
 
-    df['دسته'] = df['سمت'].apply(categorize_position)
-    df = df.sort_values('تاریخ_شروع_میلادی')
+    df = pd.DataFrame(members)
 
+    # --- تبدیل تاریخ ---
+    def shamsi_to_miladi(date_str):
+        if not date_str or not isinstance(date_str, str) or '/' not in date_str:
+            return datetime.now()
+        try:
+            y, m, d = map(int, date_str.split('/'))
+            return jdatetime.date(y, m, d).togregorian()
+        except:
+            return datetime.now()
+
+    df["تاریخ_شروع_میلادی"] = df["تاریخ شروع"].apply(shamsi_to_miladi)
+    df["تاریخ_پایان_میلادی"] = df["تاریخ پایان"].apply(shamsi_to_miladi)
+
+    # --- رنگ‌بندی سمت‌ها ---
     color_map = {
-        'مدیرعامل': '#ff7f0e',
-        'هیئت مدیره': '#1f77b4',
-        'بازرس': '#8c564b',
-        'سایر': '#7f7f7f'
+        'مدیرعامل': '#FF8C00',
+        'مدیرعامل و عضو اصلی هیئت مدیره': '#FF8C00',
+        'رئیس هیئت مدیره': '#1f77b4',
+        'نایب رئیس هیئت مدیره': '#2ca02c',
+        'عضو هیئت مدیره': '#9467bd',
+        'عضو اصلی هیئت مدیره': '#9467bd',
+        'بازرس اصلی': '#8c564b',
+        'بازرس علی البدل': '#e377c2'
     }
 
-    fig = make_subplots(
-        rows=3, cols=1,
-        subplot_titles=('تایم‌لاین کامل اعضای شرکت', 'تایم‌لاین مدیرعامل و رئیس هیئت', 'آمار سمت‌ها'),
-        specs=[[{"type": "scatter"}], [{"type": "scatter"}], [{"type": "bar"}]],
-        vertical_spacing=0.12
-    )
+    # ============================================================
+    # 1️⃣ نمودار تایم‌لاین کامل اعضا
+    # ============================================================
+    st.subheader("📅 تایم‌لاین کامل اعضای شرکت")
 
+    fig_all = go.Figure()
     for _, row in df.iterrows():
-        color = color_map.get(row['دسته'], '#7f7f7f')
-        fig.add_trace(
+        color = color_map.get(row["سمت"], "#7f7f7f")
+        fig_all.add_trace(
             go.Scatter(
-                x=[row['تاریخ_شروع_میلادی'], row['تاریخ_پایان_میلادی']],
-                y=[row['نام'], row['نام']],
-                mode='lines+markers',
-                name=row['سمت'],
+                x=[row["تاریخ_شروع_میلادی"], row["تاریخ_پایان_میلادی"]],
+                y=[row["نام"], row["نام"]],
+                mode="lines+markers",
+                name=row["سمت"],
                 line=dict(color=color, width=5),
-                marker=dict(size=7, color=color),
-                hovertemplate=f"{row['نام']}<br>{row['سمت']}<br>{row['تاریخ شروع']} تا {row['تاریخ پایان']}"
-            ),
-            row=1, col=1
+                marker=dict(size=8, color=color),
+                hovertemplate=f"<b>{row['نام']}</b><br>{row['سمت']}<br>{row['تاریخ شروع']} تا {row['تاریخ پایان']}<extra></extra>"
+            )
         )
 
-    filtered = df[df['دسته'].isin(['مدیرعامل', 'هیئت مدیره'])]
-    for _, row in filtered.iterrows():
-        color = color_map.get(row['دسته'], '#7f7f7f')
-        fig.add_trace(
-            go.Scatter(
-                x=[row['تاریخ_شروع_میلادی'], row['تاریخ_پایان_میلادی']],
-                y=[f"{row['نام']} ({row['سمت']})"] * 2,
-                mode='lines+markers',
-                line=dict(color=color, width=6)
-            ),
-            row=2, col=1
-        )
-
-    counts = df['دسته'].value_counts()
-    fig.add_trace(
-        go.Bar(x=counts.index, y=counts.values, text=counts.values, textposition='auto'),
-        row=3, col=1
+    fig_all.update_layout(
+        title="تاریخچه‌ی مسئولیت اعضا",
+        xaxis_title="زمان",
+        yaxis_title="نام اعضا",
+        height=700,
+        template="plotly_white",
+        hovermode="closest"
     )
+    st.plotly_chart(fig_all, use_container_width=True)
 
-    fig.update_layout(height=1200, title="📊 داشبورد اعضای شرکت", template='plotly_white')
-    st.plotly_chart(fig, use_container_width=True)
+    # ============================================================
+    # 2️⃣ نمودار ویژه مدیرعامل و هیئت مدیره
+    # ============================================================
+    st.subheader("👔 تایم‌لاین مدیرعامل و هیئت‌مدیره")
+
+    df_board = df[df["سمت"].str.contains("مدیرعامل|هیئت", na=False)]
+    fig_board = go.Figure()
+    for _, row in df_board.iterrows():
+        color = color_map.get(row["سمت"], "#7f7f7f")
+        fig_board.add_trace(
+            go.Scatter(
+                x=[row["تاریخ_شروع_میلادی"], row["تاریخ_پایان_میلادی"]],
+                y=[f"{row['نام']} ({row['سمت']})"] * 2,
+                mode="lines+markers",
+                line=dict(color=color, width=6),
+                marker=dict(size=9, color=color),
+                hovertemplate=f"<b>{row['نام']}</b><br>{row['سمت']}<br>{row['تاریخ شروع']} تا {row['تاریخ پایان']}<extra></extra>"
+            )
+        )
+
+    fig_board.update_layout(
+        title="تغییرات مدیرعامل و اعضای هیئت‌مدیره",
+        xaxis_title="زمان",
+        yaxis_title="اعضا",
+        height=600,
+        template="plotly_white",
+        hovermode="closest"
+    )
+    st.plotly_chart(fig_board, use_container_width=True)
+
+    # ============================================================
+    # 3️⃣ نمودار آمار سمت‌ها
+    # ============================================================
+    st.subheader("📊 آمار تعداد سمت‌ها")
+
+    position_counts = df["سمت"].value_counts()
+    fig_bar = go.Figure(
+        go.Bar(
+            x=position_counts.index,
+            y=position_counts.values,
+            text=position_counts.values,
+            textposition="auto",
+            marker_color="#636EFA"
+        )
+    )
+    fig_bar.update_layout(
+        title="تعداد تکرار هر سمت در تاریخچه شرکت",
+        xaxis_title="سمت",
+        yaxis_title="تعداد دفعات",
+        height=500,
+        template="plotly_white"
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
 
 
 # ------------------ رابط کاربری Streamlit ------------------
