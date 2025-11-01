@@ -2,6 +2,7 @@ import zipfile
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+import time
 
 def create_proxy_extension(proxy_host, proxy_port, proxy_user, proxy_pass):
     """ایجاد افزونه‌ی proxy با یوزر و پسورد"""
@@ -98,15 +99,5 @@ def save_debug(driver, name):
 
 driver = setup_driver()
 driver.get("https://www.rrk.ir/")
-        time.sleep(2)
-        save_debug(driver, "home")
-
-search_box = wait.until(EC.presence_of_element_located((By.ID, "P0_SEARCH_ITEM")))
-        search_box.clear()
-        search_box.send_keys(query)
-        driver.find_element(By.ID, "BTN_ADVANCEDSEARCH").click()
-
-        time.sleep(3)
-        wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "t-LinksList-link"))).click()
-        time.sleep(3)
-        save_debug(driver, "results_page")
+time.sleep(2)
+save_debug(driver, "home")
