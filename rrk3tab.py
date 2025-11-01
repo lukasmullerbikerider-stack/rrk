@@ -166,7 +166,7 @@ def llm(data):
 
     # 5️⃣ --- ساخت مدل Gemini ---
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-pro",  # تصحیح مدل به نسخه معتبر
+        model_name="gemini-2.5-pro",  # تصحیح مدل به نسخه معتبر
         system_instruction=system_instruction
     )
 
@@ -471,4 +471,5 @@ with tab3:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
 tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
+
 
