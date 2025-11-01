@@ -1,11 +1,16 @@
+import os
+import time
+import json
+import logging
 import streamlit as st
+import pandas as pd
+from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-import time, logging, os, pandas as pd
+from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 
 st.set_page_config(page_title="استخراج آگهی‌های rrk.ir", layout="wide")
 st.title("📰 استخراج آگهی‌های شرکت از rrk.ir")
@@ -452,42 +457,6 @@ with tab2:
         except Exception as e:
             st.error(f"❌ خطا در خواندن فایل: {e}")
 
-# تب 2: بارگذاری فایل JSON
-with tab2:
-    st.markdown("فایل JSON اطلاعات روزنامه رسمی را انتخاب کنید.")
-    uploaded = st.file_uploader("📂 فایل JSON را انتخاب کنید", type=["json"], key="file_uploader_1")
-
-    if uploaded is not None:
-        try:
-            ads = json.load(uploaded)
-            st.success(f"✅ فایل با {len(ads)} رکورد بارگذاری شد.")
-            st.dataframe(pd.DataFrame(ads))
-
-            # نمایش تحلیل اولیه
-            st.markdown("### 📊 تحلیل اولیه")
-            st.write("**تعداد شرکت‌ها:**", len(set([ad["نام شرکت"] for ad in ads])))
-            st.write("**تعداد آگهی‌ها:**", len(ads))
-
-            # پردازش با LLM و نمایش خروجی
-            with st.spinner("در حال تحلیل با هوش مصنوعی..."):
-                analyzed_data = llm(ads)
-            
-            st.markdown("### 🤖 تحلیل اعضای شرکت")
-            st.json(analyzed_data)
-            
-            # دانلود فایل خروجی
-            with open("company_members.json", "r", encoding="utf-8") as f:
-                json_content = f.read()
-            st.download_button(
-                "📥 دانلود JSON تحلیل‌شده",
-                data=json_content,
-                file_name="company_members.json",
-                mime="application/json"
-            )
-            
-        except Exception as e:
-            st.error(f"❌ خطا در پردازش اطلاعات شرکت: {e}")
-
 # تب 3: بارگذاری اطلاعات اعضای شرکت
 with tab3:
     st.markdown("فایل JSON حاوی اطلاعات اعضای شرکت را انتخاب کنید")
@@ -502,3 +471,4 @@ with tab3:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
 tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
+
