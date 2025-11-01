@@ -91,8 +91,8 @@ def extract_fields(driver, soup):
 # -----------------------------
 # تابع اصلی
 # -----------------------------
-def scrape_company_ads(query, headless=True):
-    driver, wait = setup_driver(headless=headless)
+def scrape_company_ads(query):
+    driver, wait = setup_driver()
     ad_data = []
 
     try:
@@ -540,4 +540,5 @@ with tab3:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
 tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
+
 
