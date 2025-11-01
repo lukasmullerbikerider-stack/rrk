@@ -12,29 +12,37 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from bs4 import BeautifulSoup
+import logging, time, os
+
+
 
 # -----------------------------
 # تنظیمات Chrome
 # -----------------------------
-def setup_driver(headless=True):
+def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--headless=new")  # حالت جدید headless پایدارتر
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--lang=fa-IR")
     chrome_options.add_argument("--start-maximized")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                "Chrome/118.0.5993.70 Safari/537.36")
-    if headless:
-        chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+
+    # مسیر Chrome (در Posit احتمالاً باید به این شکل باشد)
+    chrome_path = "/usr/bin/google-chrome"  # یا "/usr/bin/chromium-browser"
+    if os.path.exists(chrome_path):
+        chrome_options.binary_location = chrome_path
 
     driver = webdriver.Chrome(options=chrome_options)
-    driver.set_window_size(1920, 1080)
     driver.implicitly_wait(10)
     wait = WebDriverWait(driver, 60)
     return driver, wait
@@ -532,3 +540,4 @@ with tab3:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
 tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
+
