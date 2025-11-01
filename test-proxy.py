@@ -95,7 +95,7 @@ def save_debug(driver, name):
             f.write(driver.page_source)
         logging.info(f"📸 Debug saved: {base}")
     except Exception as e:
-        logging.warning(f"⚠️ خطا در ذخیره debug: {e}")
+        print("⚠️ خطا در ذخیره")
 
 # ----------------------------------
 # رابط کاربری Streamlit
@@ -116,4 +116,18 @@ with tab1:
         driver = setup_driver()
         driver.get("https://www.rrk.ir/")
         time.sleep(2)
-        save_debug(driver, "home")
+        
+        # تعیین عرض دلخواه (مثلاً 1366) و گرفتن ارتفاع کامل صفحه
+        width = 1366
+        height = driver.execute_script("return Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);")
+        driver.set_window_size(width, height)
+        time.sleep(0.5)  # اجازه بده رندر کامل بشه
+        
+        filename = "rrk_fullpage.png"
+        driver.save_screenshot(filename)
+        
+        # نمایش در Streamlit
+        with open(filename, "rb") as f:
+            img_bytes = f.read()
+        st.image(img_bytes, caption="اسکرین‌شات تمام صفحه")
+        st.download_button("دانلود تصویر تمام صفحه", data=img_bytes, file_name=filename, mime="image/png")
