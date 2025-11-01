@@ -6,3 +6,4 @@ plotly
 jdatetime
 google-generativeai
 google-genai
+undetected_chromedriver
