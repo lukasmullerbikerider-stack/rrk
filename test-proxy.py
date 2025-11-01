@@ -97,7 +97,23 @@ def save_debug(driver, name):
     except Exception as e:
         logging.warning(f"⚠️ خطا در ذخیره debug: {e}")
 
-driver = setup_driver()
-driver.get("https://www.rrk.ir/")
-time.sleep(2)
-save_debug(driver, "home")
+# ----------------------------------
+# رابط کاربری Streamlit
+# ----------------------------------
+import streamlit as st
+st.title("تست پروکسی روی RRK.ir")
+
+tab1 = st.tabs(["تست پروکسی"])
+
+# --------------------------
+# تب 1: استخراج جدید
+# --------------------------
+with tab1:
+    st.markdown("تست proxy")
+    start_btn = st.button("شروع تست")
+
+    if start_btn:
+        driver = setup_driver()
+        driver.get("https://www.rrk.ir/")
+        time.sleep(2)
+        save_debug(driver, "home")
