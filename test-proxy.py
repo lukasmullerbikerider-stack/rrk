@@ -103,7 +103,7 @@ def save_debug(driver, name):
 import streamlit as st
 st.title("تست پروکسی روی RRK.ir")
 
-tab1 = st.tabs(["تست پروکسی"])
+tab1, = st.tabs(["تست پروکسی"])
 
 # --------------------------
 # تب 1: استخراج جدید
