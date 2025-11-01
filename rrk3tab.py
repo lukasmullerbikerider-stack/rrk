@@ -27,7 +27,8 @@ def setup_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--remote-debugging-port=9222")
-
+    chrome_options.add_argument("--proxy-server=http://85.185.120.203:42073")
+    
     chrome_path = "/usr/bin/google-chrome"
     if os.path.exists(chrome_path):
         chrome_options.binary_location = chrome_path
@@ -471,5 +472,6 @@ with tab3:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
 tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
+
 
 
