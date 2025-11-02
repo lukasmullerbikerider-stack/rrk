@@ -28,5 +28,7 @@ with tab1:
 
     if start_btn:
         r = requests.get("https://rrk.ir/", proxies=proxies, timeout=30)
+        st.write("✅ Status Code:", r.status_code)
+        st.code(r.text[:500], language="html")
         print(r.status_code)
         print(r.text[:500])
