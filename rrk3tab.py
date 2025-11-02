@@ -11,6 +11,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
+import jdatetime
+from datetime import datetime
 
 st.set_page_config(page_title="استخراج آگهی‌های rrk.ir", layout="wide")
 st.title("📰 استخراج آگهی‌های شرکت از rrk.ir")
@@ -471,7 +473,6 @@ with tab3:
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت: {e}")
 
-tab1, tab2, tab3 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 بررسی اعضای شرکت", "تایم لاین اعضای شرکت"])
 
 
 
