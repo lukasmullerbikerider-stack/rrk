@@ -13,6 +13,8 @@ from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
 import jdatetime
 from datetime import datetime
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="استخراج آگهی‌های rrk.ir", layout="wide")
 st.title("📰 استخراج آگهی‌های شرکت از rrk.ir")
@@ -472,6 +474,7 @@ with tab3:
             charts(dataframe)
         except Exception as e:
             st.error(f"❌ خطا در نمایش چارت: {e}")
+
 
 
 
