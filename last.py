@@ -292,73 +292,79 @@ div[data-testid="stVerticalBlock"] > div { direction: rtl; }
 # عنوان صفحه
 st.markdown("<h2 style='text-align:center;'>📂 سامانه تحلیل آگهی و اعضای شرکت</h2>", unsafe_allow_html=True)
 
-# ------------------ مرحله 1 ------------------
-st.markdown("### ✅ مرحله ۱: بارگذاری فایل آگهی‌ها")
+# --------------------------
+# رابط کاربری Streamlit
+# --------------------------
+st.title("🏢 RRK.ir – استخراج اطلاعات روزنامه رسمی و تحلیل اعضا")
 
-uploaded = st.file_uploader("فایل JSON آگهی‌ها را انتخاب کنید", type=["json"])
+tab1, tab2 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📂 تحلیل و داشبورد اعضای شرکت"])
 
-if uploaded is not None:
-    ads = json.load(uploaded)
-    df = pd.DataFrame(ads)
+# --------------------------
+# ✅ تب 1: استخراج جدید
+# --------------------------
+with tab1:
+    st.markdown("در این بخش می‌توانید با وارد کردن **نام شرکت** یا **شناسه ملی**، آگهی‌های مرتبط را از rrk.ir جمع‌آوری کنید.")
+    query = st.text_input("🔍 نام شرکت یا شناسه ملی:")
+    start_btn = st.button("شروع استخراج")
 
-    st.success(f"✅ فایل آگهی‌ها با {len(df)} رکورد بارگذاری شد.")
+    if start_btn:
+        if not query.strip():
+            st.warning("⚠️ لطفاً نام شرکت یا شناسه ملی را وارد کنید.")
+        else:
+            with st.spinner("در حال جمع‌آوری آگهی‌ها از rrk.ir ..."):
+                ads = scrape_company_ads(query)
 
-    with st.expander("📄 مشاهده جدول آگهی‌ها"):
-        st.dataframe(df, use_container_width=True)
+            if len(ads) == 0:
+                st.error("❌ هیچ آگهی‌ای یافت نشد.")
+            else:
+                df = pd.DataFrame(ads)
+                st.success(f"✅ {len(df)} آگهی یافت شد.")
+                st.dataframe(df)
 
-    st.progress(0.3)
+                # دانلود JSON و Excel
+                json_data = json.dumps(ads, ensure_ascii=False, indent=2)
+                st.download_button("📥 دانلود JSON", json_data, f"{query}_ads.json", "application/json")
 
-    # تحلیل اولیه
-    st.markdown("### 📊 تحلیل اولیه")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("تعداد شرکت‌ها", df["نام شرکت"].nunique())
-    col2.metric("تعداد آگهی‌ها", len(df))
-    col3.metric("بازه زمانی", f"{df['تاریخ نامه'].min()} ➜ {df['تاریخ نامه'].max()}")
+                excel_bytes = df.to_excel(index=False, engine="openpyxl")
+                st.download_button("📊 دانلود Excel", excel_bytes, f"{query}_ads.xlsx",
+                                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    # پردازش LLM
-    st.markdown("### 🧠 مرحله ۲: تحلیل با هوش مصنوعی")
-    if st.button("🚀 شروع تحلیل"):
-        with st.spinner("در حال تحلیل با هوش مصنوعی..."):
-            analyzed_data = llm(ads)
-
-        st.success("✅ تحلیل انجام شد")
-        st.json(analyzed_data)
-
-        st.download_button(
-            "📥 دانلود خروجی تحلیل",
-            data=json.dumps(analyzed_data, ensure_ascii=False),
-            file_name="company_members.json",
-            mime="application/json"
-        )
-
-    st.progress(0.6)
-
-    # فیلتر شرکت‌ها
-    st.markdown("### 🔍 فیلتر شرکت‌ها")
-    company_filter = st.selectbox("انتخاب شرکت", df["نام شرکت"].unique())
-    df_filtered = df[df["نام شرکت"] == company_filter]
-    st.dataframe(df_filtered, use_container_width=True)
-
-    st.download_button(
-        "📤 دانلود داده فیلتر شده",
-        data=df_filtered.to_csv(index=False).encode("utf-8"),
-        file_name=f"{company_filter}_filtered.csv",
-        mime="text/csv"
-    )
-
-    st.progress(0.8)
-
-    st.divider()
+# --------------------------
+# ✅ تب 2: بارگذاری + LLM + داشبورد
+# --------------------------
+with tab2:
+    st.markdown("در این بخش فایل JSON خروجی را بارگذاری کنید تا اطلاعات اعضا استخراج و نمودار ترسیم شود.")
     
-    # ------------------ مرحله 3 ------------------
-    st.markdown("### 👥 مرحله ۳: بارگذاری فایل اعضای شرکت")
-    uploaded2 = st.file_uploader("فایل JSON اعضای شرکت را انتخاب کنید", type=["json"], key="file2")
+    uploaded = st.file_uploader("📂 فایل JSON آگهی شرکت را انتخاب کنید", type=["json"])
 
-    if uploaded2 is not None:
-        dataframe = json.load(uploaded2)
-        st.success("✅ فایل اعضای شرکت بارگذاری شد")
+    if uploaded is not None:
+        try:
+            ads = json.load(uploaded)
+            df = pd.DataFrame(ads)
+            st.success(f"✅ فایل با {len(df)} رکورد بارگذاری شد.")
 
-        st.markdown("### 📈 مرحله ۴: داشبورد اعضای شرکت")
-        charts(dataframe)   # تابع شما
+            st.dataframe(df)
 
-        st.progress(1.0)
+            st.markdown("### 🧠 پردازش با هوش مصنوعی (استخراج اعضای شرکت)")
+
+            with st.spinner("در حال تحلیل با LLM ..."):
+                analyzed_data = llm(ads)  # ✅ خروجی مستقیم برای چارت‌ها
+
+            st.success("✅ تحلیل اعضای شرکت انجام شد")
+
+            # نمایش JSON خروجی
+            with st.expander("📄 مشاهده اطلاعات استخراج‌شده اعضا"):
+                st.json(analyzed_data)
+
+            st.download_button(
+                "📥 دانلود JSON تحلیل‌شده",
+                data=json.dumps(analyzed_data, ensure_ascii=False, indent=2),
+                file_name="company_members.json",
+                mime="application/json"
+            )
+
+            st.markdown("### 📈 داشبورد اعضای شرکت")
+            charts(analyzed_data)  # ✅ نمودار مستقیم بعد از LLM
+
+        except Exception as e:
+            st.error(f"❌ خطا: {e}")
