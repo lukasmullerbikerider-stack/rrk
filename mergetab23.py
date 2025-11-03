@@ -16,6 +16,9 @@ import jdatetime
 from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+from datetime import date
+
 # ----------------------------
 # ✅ نرمال‌سازی فارسی
 # ----------------------------
