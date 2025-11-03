@@ -15,9 +15,8 @@ import jdatetime
 from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
 # ----------------------------
-# ✅ تابع نرمال ساز متن فارسی
+# ✅ نرمال‌سازی فارسی
 # ----------------------------
 def normalize_persian(text: str) -> str:
     if not isinstance(text, str): return text
@@ -41,7 +40,7 @@ def normalize_records(records):
     return list(people.values())
 
 # ----------------------------
-# ✅ تبدیل تاریخ شمسی به میلادی
+# ✅ تاریخ شمسی → میلادی
 # ----------------------------
 def to_gregorian(d):
     y,m,d = map(int, d.split("/"))
@@ -49,7 +48,7 @@ def to_gregorian(d):
     return date(g.year, g.month, g.day)
 
 # ----------------------------
-# ✅ ترسیم تایم‌لاین اعضا
+# ✅ نمودار تایم لاین
 # ----------------------------
 def plot_timeline(df, title):
     plt.figure(figsize=(10,4))
@@ -59,11 +58,10 @@ def plot_timeline(df, title):
     plt.xlabel("Timeline")
     plt.ylabel("Persons")
     plt.grid(True)
-    plt.legend(df["شماره روزنامه"].astype(str).unique(), title="شماره روزنامه")
     st.pyplot(plt)
 
 # ----------------------------
-# ✅ تابع پردازش LLM روی آگهی‌ها (موقتی — باید API خودت بزنی)
+# ✅ پردازش LLM (فعلاً نمایشی)
 # ----------------------------
 def llm_extract(data):
     import google.generativeai as genai
@@ -75,6 +73,7 @@ def llm_extract(data):
 
     # 2️⃣ --- تنظیم API Key ---
     apikey = "AIzaSyAALSr7TI81SZ6e0X9tLk14GJJk37CkMgQ"
+
     genai.configure(api_key=apikey)
 
     # 3️⃣ --- تبدیل کل JSON به رشته (برای جلوگیری از خطای dict) ---
@@ -125,71 +124,67 @@ def llm_extract(data):
     # 8️⃣ --- بازگشت محتوای JSON برای نمایش در Streamlit ---
     with open(output_path, "r", encoding="utf-8") as f:
         return json.load(f)
-    
 
-# ----------------------------
-# ✅ رابط کاربری Streamlit
-# ----------------------------
-st.set_page_config(page_title="تحلیل اعضای شرکت", layout="wide")
-st.markdown("<h2 style='text-align:right;'>🏢 داشبورد تحلیل آگهی روزنامه رسمی و اعضای شرکت</h2>", unsafe_allow_html=True)
+    result = json.loads(response.text)
 
-tab1, tab2 = st.tabs(["🕵️ استخراج اطلاعات شرکت", "📊 تحلیل اعضای شرکت"])
+    # ✅ نرمال سازی خروجی LLM
+    result["اعضای فعلی شرکت"] = normalize_records(result.get("اعضای فعلی شرکت", []))
+    result["اعضای سابق شرکت"] = normalize_records(result.get("اعضای سابق شرکت", []))
 
-# --------------------------
-# ✅ تب ۱: دریافت فایل آگهی
-# --------------------------
-with tab1:
-    st.markdown("### 📂 فایل JSON آگهی‌های شرکت را آپلود کنید")
+    return result
 
-    uploaded = st.file_uploader("انتخاب فایل آگهی", type=["json"])
-    if uploaded:
-        ads = json.load(uploaded)
-        st.success("✅ فایل بارگذاری شد")
-        st.dataframe(pd.DataFrame(ads))
-        st.session_state["ads"] = ads
+# -------------------------------------------
+# ✅ UI — only one dashboard screen
+# -------------------------------------------
+st.set_page_config(page_title="تحلیل روزنامه رسمی", layout="wide")
 
-# --------------------------
-# ✅ تب ۲: پردازش + نمودار
-# --------------------------
-with tab2:
-    if "ads" not in st.session_state:
-        st.warning("⚠️ ابتدا فایل JSON آگهی را در تب اول بارگذاری کنید")
-        st.stop()
+st.markdown("""
+<h2 style='text-align:right; direction:rtl;'>📊 تحلیل هوشمند آگهی‌های روزنامه رسمی و اعضای شرکت</h2>
+<p style='text-align:right; direction:rtl;'>فایل JSON آگهی‌ها را آپلود کنید تا سیستم افراد، سمت‌ها و بازه زمانی فعالیت را استخراج و نمایش دهد.</p>
+""", unsafe_allow_html=True)
 
-    st.markdown("### 🤖 پردازش اعضا و ساخت تایم‌لاین")
+uploaded = st.file_uploader("📂 فایل JSON روزنامه رسمی", type=["json"], label_visibility="visible")
 
-    ads = st.session_state["ads"]
-    parsed = llm_extract(ads)   # ➡️ جایگزین با API مدل واقعی
+if uploaded:
+    ads = json.load(uploaded)
 
-    if "اعضای فعلی شرکت" in parsed:
-        members_now = normalize_records(parsed["اعضای فعلی شرکت"])
-        members_old = normalize_records(parsed.get("اعضای سابق شرکت", []))
-        all_members = members_now + members_old
+    with st.spinner("⏳ درحال پردازش با هوش مصنوعی..."):
+        parsed = llm_extract(ads)
 
-        rows=[]
-        for p in all_members:
-            try:
-                rows.append([
-                    p["نام"], p["سمت"],
-                    to_gregorian(p["تاریخ شروع"]),
-                    to_gregorian(p["تاریخ پایان"]),
-                    p["شماره روزنامه"]
-                ])
-            except:
-                pass
+    members_now = normalize_records(parsed.get("اعضای فعلی شرکت", []))
+    members_old = normalize_records(parsed.get("اعضای سابق شرکت", []))
+    all_members = members_now + members_old
 
-        df = pd.DataFrame(rows, columns=["نام","سمت","start","end","شماره روزنامه"])
+    rows=[]
+    for p in all_members:
+        try:
+            rows.append([
+                p["نام"], p["سمت"],
+                to_gregorian(p["تاریخ شروع"]),
+                to_gregorian(p["تاریخ پایان"]),
+                p["شماره روزنامه"]
+            ])
+        except:
+            pass
 
-        df_board = df[df["سمت"].str.contains("مدیرعامل|هیئت مدیره")]
-        df_member = df[~df["سمت"].str.contains("مدیرعامل|هیئت مدیره")]
+    df = pd.DataFrame(rows, columns=["نام","سمت","start","end","شماره روزنامه"])
 
-        st.success("✅ داده‌ها پردازش و نرمال‌سازی شد")
+    # جدا سازی نمودار مدیرعامل و هیئت
+    df_board = df[df["سمت"].str.contains("مدیرعامل|هیئت مدیره")]
+    df_member = df[~df["سمت"].str.contains("مدیرعامل|هیئت مدیره")]
 
-        st.subheader("👤 اعضای شرکت")
-        plot_timeline(df_member, "Timeline - اعضای شرکت")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("👥 تعداد اعضا", len(df_member))
+    with col2:
+        st.metric("🏛 تعداد مدیران و هیئت‌مدیره", len(df_board))
 
-        st.subheader("🏛 مدیرعامل و هیئت‌مدیره")
-        plot_timeline(df_board, "Timeline - هیئت‌مدیره و مدیرعامل")
+    st.subheader("👤 اعضای شرکت")
+    plot_timeline(df_member, "Timeline - اعضای شرکت")
 
-        st.markdown("### 📥 دانلود خروجی پردازش‌شده")
-        st.download_button("دانلود JSON", data=json.dumps(all_members, ensure_ascii=False), file_name="members_clean.json", mime="application/json")
+    st.subheader("🏛 مدیرعامل و هیئت‌مدیره")
+    plot_timeline(df_board, "Timeline - هیئت‌مدیره و مدیرعامل")
+
+    st.download_button("📥 دانلود خروجی پردازش‌شده", 
+        data=json.dumps(all_members, ensure_ascii=False),
+        file_name="members_clean.json", mime="application/json")
