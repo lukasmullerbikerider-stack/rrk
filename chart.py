@@ -3,17 +3,6 @@ import pandas as pd
 import plotly.express as px
 import json
 
-st.set_page_config(page_title="📊 داشبورد اعضا و مدیران شرکت", layout="wide")
-
-# 📁 آپلود فایل JSON
-uploaded2 = st.file_uploader("📂 فایل اعضای شرکت", type=["json"], label_visibility="visible")
-
-if uploaded2:
-    membersdata = json.load(uploaded2)
-    charts_data = membersdata
-    charts(charts_data)
-
-
 # -------------------------------------------------------------------
 # 📊 تابع نمایش نمودارها
 # -------------------------------------------------------------------
@@ -184,3 +173,13 @@ def charts(data):
             st.warning(f"⚠️ داده کافی برای رسم نمودار ترکیبی وجود ندارد: {e}")
 
         st.markdown("</div>", unsafe_allow_html=True)
+        
+st.set_page_config(page_title="📊 داشبورد اعضا و مدیران شرکت", layout="wide")
+
+# 📁 آپلود فایل JSON
+uploaded2 = st.file_uploader("📂 فایل اعضای شرکت", type=["json"], label_visibility="visible")
+
+if uploaded2:
+    membersdata = json.load(uploaded2)
+    charts_data = membersdata
+    charts(charts_data)
