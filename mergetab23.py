@@ -140,7 +140,26 @@ def llm_extract(data):
 
 
 def charts(data):
-    df = pd.DataFrame(data)
+    import pandas as pd
+    import plotly.express as px
+    import streamlit as st
+
+    # ✅ 1. آماده‌سازی داده‌ها
+    current = data.get("اعضای فعلی شرکت", [])
+    past = data.get("اعضای سابق شرکت", [])
+
+    all_members = []
+    for m in current:
+        m["وضعیت"] = "فعلی"
+        all_members.append(m)
+    for m in past:
+        m["وضعیت"] = "سابق"
+        all_members.append(m)
+
+    df = pd.DataFrame(all_members)
+
+    # اگر ستونی خالی بود (به دلیل نبود داده)، جایگزین مقدار خالی شود
+    df = df.fillna("نامشخص")
 
     # 🌈 CSS سفارشی برای استایل کارت‌ها
     st.markdown("""
@@ -183,9 +202,9 @@ def charts(data):
 
         colA1, colA2 = st.columns(2)
         with colA1:
-            date_col1 = st.selectbox("📅 ستون تاریخ اعضا:", df.columns, key="date1")
+            date_col1 = st.selectbox("📅 ستون تاریخ اعضا:", df.columns, index=list(df.columns).index("تاریخ شروع"))
         with colA2:
-            name_col1 = st.selectbox("📛 ستون نام افراد:", df.columns, key="name1")
+            name_col1 = st.selectbox("📛 ستون نام افراد:", df.columns, index=list(df.columns).index("نام"))
 
         df_members = df.groupby(df[date_col1])[name_col1].count().reset_index()
         df_members.columns = ["date", "count"]
@@ -219,14 +238,14 @@ def charts(data):
 
         colB1, colB2, colB3 = st.columns(3)
         with colB1:
-            date_col2 = st.selectbox("📅 ستون تاریخ:", df.columns, key="date2")
+            date_col2 = st.selectbox("📅 ستون تاریخ:", df.columns, index=list(df.columns).index("تاریخ شروع"))
         with colB2:
-            role_col = st.selectbox("🎭 ستون سمت/نقش:", df.columns, key="role2")
+            role_col = st.selectbox("🎭 ستون سمت/نقش:", df.columns, index=list(df.columns).index("سمت"))
         with colB3:
             roles_selected = st.multiselect(
                 "🔎 نقش‌هایی که نمایش داده شود:",
-                df[role_col].unique(),
-                default=df[role_col].unique()
+                sorted(df[role_col].unique()),
+                default=sorted(df[role_col].unique())
             )
 
         df_role = df[df[role_col].isin(roles_selected)]
