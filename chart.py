@@ -4,15 +4,6 @@ import plotly.express as px
 import json
 import jdatetime  # برای تبدیل تاریخ شمسی به میلادی
 
-# ---------------------- پیکربندی صفحه ----------------------
-st.set_page_config(page_title="📊 داشبورد اعضا و مدیران شرکت", layout="wide")
-
-st.title("📊 داشبورد تحلیلی اعضا و مدیران شرکت")
-st.caption("بارگذاری فایل JSON اعضای شرکت و مشاهده‌ی تایم‌لاین تغییرات سمت‌ها در طول زمان")
-
-# ---------------------- آپلود فایل JSON ----------------------
-uploaded2 = st.file_uploader("📂 فایل اعضای شرکت", type=["json"], label_visibility="visible")
-
 # ---------------------- تابع اصلی ----------------------
 def charts(data):
     # ✅ 1. آماده‌سازی داده‌ها
@@ -139,9 +130,9 @@ def charts(data):
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------- اجرای تابع ----------------------
-if uploaded2:
+if uploaded:
     try:
-        membersdata = json.load(uploaded2)
+        membersdata = json.load(uploaded)
         charts(membersdata)
     except Exception as e:
         st.error(f"❌ خطا در خواندن فایل JSON: {e}")
