@@ -84,7 +84,6 @@ def llm_extract(data):
     # 3️⃣ --- تبدیل کل JSON به رشته (برای جلوگیری از خطای dict) ---
     prompt = json.dumps(data, ensure_ascii=False, indent=2)
 
-    # 4️⃣ --- تعریف دستورالعمل سیستم ---
     # system_instruction = """نقش: شما یک تحلیلگر متخصص حقوقی و شرکتی هستید که در زمینه بررسی اسناد رسمی و روزنامه‌های کثیرالانتشار تخصص دارید.
     # موضوع: ورودی حاوی تاریخچه آگهی‌های ثبت‌شده در روزنامه رسمی برای یک شرکت است.
     # وظیفه اصلی: با تحلیل دقیق و به ترتیب زمانی متن آگهی‌ها، هر عضو این شرکت را شناسایی و با تاریخ شروع و پایان مسئولیت معرفی کنید.
@@ -106,7 +105,8 @@ def llm_extract(data):
     # }
     # """
 
-"""You are an advanced information extraction system designed to read
+ # 4️⃣ --- تعریف دستورالعمل سیستم ---
+system_instruction = """You are an advanced information extraction system designed to read
 Iran Official Gazette ("روزنامه رسمی") announcements and convert
 them into structured JSON objects.
 
@@ -180,7 +180,8 @@ Return **ONLY** a JSON array of objects like:
 - Persian digits must be preserved EXACTLY as in the input text.
 - If an announcement contains no person data → ignore it.
 
-Now read the input JSON and produce the final structured list."""
+Now read the input JSON and produce the final structured list.
+"""
 
     # 5️⃣ --- ساخت مدل Gemini ---
     model = genai.GenerativeModel(
