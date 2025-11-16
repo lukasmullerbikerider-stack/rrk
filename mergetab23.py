@@ -408,12 +408,11 @@ if uploaded:
 
     with st.spinner("⏳ درحال پردازش با هوش مصنوعی..."):
         parsed = llm_extract(ads)
+        st.download_button("📥 دانلود خروجی پردازش‌شده", 
+            data=json.dumps(parsed, ensure_ascii=False),
+            file_name="members.json", mime="application/json")
 
 if uploaded2:
     membersdata =  json.load(uploaded2)
     charts(membersdata)
 
-
-    st.download_button("📥 دانلود خروجی پردازش‌شده", 
-        data=json.dumps(all_members, ensure_ascii=False),
-        file_name="members_clean.json", mime="application/json")
