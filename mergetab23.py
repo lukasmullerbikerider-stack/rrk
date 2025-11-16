@@ -85,26 +85,102 @@ def llm_extract(data):
     prompt = json.dumps(data, ensure_ascii=False, indent=2)
 
     # 4️⃣ --- تعریف دستورالعمل سیستم ---
-    system_instruction = """نقش: شما یک تحلیلگر متخصص حقوقی و شرکتی هستید که در زمینه بررسی اسناد رسمی و روزنامه‌های کثیرالانتشار تخصص دارید.
-    موضوع: ورودی حاوی تاریخچه آگهی‌های ثبت‌شده در روزنامه رسمی برای یک شرکت است.
-    وظیفه اصلی: با تحلیل دقیق و به ترتیب زمانی متن آگهی‌ها، هر عضو این شرکت را شناسایی و با تاریخ شروع و پایان مسئولیت معرفی کنید.
+    # system_instruction = """نقش: شما یک تحلیلگر متخصص حقوقی و شرکتی هستید که در زمینه بررسی اسناد رسمی و روزنامه‌های کثیرالانتشار تخصص دارید.
+    # موضوع: ورودی حاوی تاریخچه آگهی‌های ثبت‌شده در روزنامه رسمی برای یک شرکت است.
+    # وظیفه اصلی: با تحلیل دقیق و به ترتیب زمانی متن آگهی‌ها، هر عضو این شرکت را شناسایی و با تاریخ شروع و پایان مسئولیت معرفی کنید.
 
-    مراحل اجرا:
-    1. ابتدا تمام آگهی‌ها را بر اساس «تاریخ نامه» یا «تاریخ روزنامه» از قدیمی‌ترین به جدیدترین مرتب کنید.
-    2. متن هر آگهی را بررسی کنید تا اطلاعات مربوط به اعضای شرکت (مدیرعامل، هیئت‌مدیره، بازرس و...) استخراج شود.
-    3. در صورت وجود، تاریخ شروع و پایان مسئولیت را تعیین کنید.
-    4. خروجی را دقیقاً در قالب JSON زیر تولید کنید:
-    {
-    "نام شرکت": "string or null",
-    "شناسه شرکت": "number or null",
-    "اعضای فعلی شرکت": [
-        {"نام": "string or null", "کد ملی": "string or null", "سمت": "string or null", "تاریخ شروع": "string or null", "تاریخ پایان": "string or null", "شماره روزنامه": "string or null"}
-    ],
-    "اعضای سابق شرکت": [
-        {"نام": "string or null", "کد ملی": "string or null", "سمت": "string or null", "تاریخ شروع": "string or null", "تاریخ پایان": "string or null", "شماره روزنامه": "string or null"}
-    ]
-    }
-    """
+    # مراحل اجرا:
+    # 1. ابتدا تمام آگهی‌ها را بر اساس «تاریخ نامه» یا «تاریخ روزنامه» از قدیمی‌ترین به جدیدترین مرتب کنید.
+    # 2. متن هر آگهی را بررسی کنید تا اطلاعات مربوط به اعضای شرکت (مدیرعامل، هیئت‌مدیره، بازرس و...) استخراج شود.
+    # 3. در صورت وجود، تاریخ شروع و پایان مسئولیت را تعیین کنید.
+    # 4. خروجی را دقیقاً در قالب JSON زیر تولید کنید:
+    # {
+    # "نام شرکت": "string or null",
+    # "شناسه شرکت": "number or null",
+    # "اعضای فعلی شرکت": [
+    #     {"نام": "string or null", "کد ملی": "string or null", "سمت": "string or null", "تاریخ شروع": "string or null", "تاریخ پایان": "string or null", "شماره روزنامه": "string or null"}
+    # ],
+    # "اعضای سابق شرکت": [
+    #     {"نام": "string or null", "کد ملی": "string or null", "سمت": "string or null", "تاریخ شروع": "string or null", "تاریخ پایان": "string or null", "شماره روزنامه": "string or null"}
+    # ]
+    # }
+    # """
+
+"""You are an advanced information extraction system designed to read
+Iran Official Gazette ("روزنامه رسمی") announcements and convert
+them into structured JSON objects.
+
+## INPUT FORMAT (exact structure)
+You will receive a JSON array, where each item represents a Gazette announcement with fields like:
+
+{
+  "شماره پیگیری": "...",
+  "شماره نامه": "...",
+  "تاریخ نامه": "YYYY/MM/DD",
+  "نام شرکت": "...",
+  "شناسه ملی شرکت": "...",
+  "شماره ثبت": "...",
+  "شماره روزنامه": "...",
+  "تاریخ روزنامه": "YYYY/MM/DD",
+  "شماره صفحه روزنامه": "...",
+  "تعداد نوبت انتشار": "...",
+  "متن آگهی": "متن کامل فارسی آگهی",
+  "url": "..."
+}
+
+Your task is to analyze ONLY the field "متن آگهی".
+
+## EXTRACTION RULES
+For every person mentioned inside “متن آگهی”, extract:
+
+- full_name (نام فرد)
+- national_id (کد ملی)
+- position (سمت)
+- start_date (تاریخ شروع سمت)
+- end_date (تاریخ پایان سمت، اگر نبود → null)
+- newspaper_number (شماره روزنامه مربوط به همان آگهی)
+- company_name
+- company_national_id
+- announcement_tracking_code (شماره پیگیری)
+- announcement_letter_number (شماره نامه)
+- announcement_date (تاریخ نامه)
+- gazette_date (تاریخ روزنامه)
+- gazette_page (شماره صفحه روزنامه)
+
+Each person must be output as a **separate JSON object** even if they appear in the same announcement.
+
+If a person has multiple positions, create **separate entries** for each role.
+
+Dates must remain in **persian format YYYY/MM/DD** exactly as in text.
+
+If a field cannot be found → use null.
+
+## OUTPUT FORMAT (strict requirement)
+Return **ONLY** a JSON array of objects like:
+
+[
+  {"نام شرکت": "...",
+   "شناسه ملی شرکت": "...",
+  {
+    "نام": "...",
+    "کد ملی": "...",
+    "سمت": "...",
+    "تاریخ شروع": "...",
+    "تاریخ پایان": "...",
+    "شماره روزنامه": "...",
+    "شماره صفحه روزنامه": "..."
+  },
+  ...
+  }
+]
+
+## IMPORTANT
+- Do NOT include any text other than the JSON output.
+- Every extracted person = one array element.
+- Persian digits must be preserved EXACTLY as in the input text.
+- If an announcement contains no person data → ignore it.
+
+Now read the input JSON and produce the final structured list."""
 
     # 5️⃣ --- ساخت مدل Gemini ---
     model = genai.GenerativeModel(
