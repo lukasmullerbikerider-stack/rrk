@@ -7,7 +7,7 @@ import google.generativeai as genai
 # -----------------------------
 st.set_page_config(page_title="تحلیل روزنامه رسمی با هوش مصنوعی", layout="wide")
 
-API_KEY = "YOUR_GEMINI_API_KEY"   # ← کلید خودت را اینجا بگذار
+API_KEY = "AIzaSyA-50zuEBmGJEutQmlQ0lK8X2RqqpQXkf4"   # ← کلید خودت را اینجا بگذار
 genai.configure(api_key=API_KEY)
 
 MODEL = "gemini-2.0-pro"  # یا "gemini-2.5-pro" اگر دسترسی داری
