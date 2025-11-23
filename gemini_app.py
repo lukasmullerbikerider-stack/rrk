@@ -18,49 +18,15 @@ MODEL = "gemini-2.5-pro"  # یا "gemini-2.5-pro" اگر دسترسی داری
 # -----------------------------
 SYSTEM_PROMPT = """
 You are an advanced information extraction engine specialized in Iranian Official Gazette (روزنامه رسمی).  
-The input will be a JSON object where each key is a newspaper issue like "23335 تهران" and its value is an array of extracted people.
+The input will be a JSON object where each key is a newspaper issue like "23335 تهران" and value is an array of extracted people.
 
 Your task:
-1. For each newspaper (each key in the input JSON), convert all person entries to standardized structured JSON.
-2. Normalize roles using the STANDARD ROLE LIST below.
+1. For each newspaper (each key in the input JSON), convert all person entries to ROLE MAPPING structured JSON.
+2. Normalize roles using the ROLE MAPPING LIST below.
 3. Keep output grouped by newspaper key (do NOT merge newspapers).
 4. Fix incomplete or wrong roles and map Persian roles to standard roles.
 5. Convert dates to YYYY-MM-DD.
 6. Extract announcement_id from the key (e.g. "23335 تهران" → announcement_id = "23335 تهران").
-
-------------------------------------
-STANDARDIZED ROLE LIST
-BoardChair
-BoardViceChair
-BoardMember
-BoardMemberAlternate
-BoardMemberPrincipal
-CEO
-DeputyCEO
-ExecutiveManager
-InternalManager
-FinancialManager
-CommercialManager
-BranchManager
-Shareholder
-Partner
-PartnerIncoming
-PartnerOutgoing
-LegalRepresentative
-Auditor
-AuditorAlternate
-Inspector
-MeetingChair
-MeetingViceChair
-MeetingSecretary
-MeetingObserver
-Liquidator
-LiquidatorChair
-LiquidatorBoardMember
-LiquidatorSupervisor
-AuthorizedSignatory
-AuthorizedSignatoryIndividual
-AuthorizedSignatoryJoint
 
 ------------------------------------
 ROLE MAPPING EXAMPLES
