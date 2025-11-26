@@ -10,7 +10,7 @@ st.set_page_config(page_title="تحلیل روزنامه رسمی با هوش م
 API_KEY = "AIzaSyA-50zuEBmGJEutQmlQ0lK8X2RqqpQXkf4"   # ← کلید خودت را اینجا بگذار
 genai.configure(api_key=API_KEY)
 
-MODEL = "gemini-3.0-pro"  # یا "gemini-2.5-pro" اگر دسترسی داری
+MODEL = "gemini-2.5-pro"  # یا "gemini-2.5-pro" اگر دسترسی داری
 
 
 # -----------------------------
