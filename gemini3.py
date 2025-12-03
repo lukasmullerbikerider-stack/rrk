@@ -101,7 +101,6 @@ if st.button("🚀 تحلیل هوش مصنوعی"):
         # - max_output_tokens را متناسب با میزان خروجی JSON تنظیم کن.
         response = model.generate_content(
             json.dumps(input_json),
-            thinking_level="high",      # <-- اینجا THINK HIGH فعال می‌شود
             temperature=0.2,
             top_p=0.95,
             max_output_tokens=4096,
