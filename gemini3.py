@@ -9,7 +9,7 @@ import os
 st.set_page_config(page_title="تحلیل روزنامه رسمی با هوش مصنوعی", layout="wide")
 
 # بهتر است کلید را از متغیر محیطی بخوانی، نه داخل کد
-API_KEY = os.getenv("GENAI_API_KEY", "AIzaSyA-50zuEBmGJEutQmlQ0lK8X2RqqpQXkf4")  # ← جایگزین کن یا بهتر: export GENAI_API_KEY=...
+API_KEY = os.getenv("GENAI_API_KEY", "AIzaSyAA90H731pSoYBT7q3yrHEUmM5bwP7wtQs")  # ← جایگزین کن یا بهتر: export GENAI_API_KEY=...
 genai.configure(api_key=API_KEY)
 
 # از gemini-3 استفاده می‌کنیم
