@@ -5,7 +5,6 @@ selenium
 plotly
 jdatetime
 google-generativeai
-google-genai
 undetected_chromedriver
 matplotlib
 streamlit
@@ -15,6 +14,7 @@ plotly
 openpyxl
 kaleido
 fpdf2
+
 
 
 
