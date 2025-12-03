@@ -125,18 +125,19 @@ if st.button("🚀 پردازش با Gemini 3.0"):
             st.stop()
 
     model = genai.GenerativeModel(
-        MODEL,
-        system_instruction=SYSTEM_PROMPT
+      model_name="gemini-3",
+      system_instruction=SYSTEM_PROMPT,
+      generation_config={
+          "temperature": 0.1,
+          "top_p": 0.95,
+          "candidate_count": 1,
+          "max_output_tokens": 4096
+      }
     )
 
     with st.spinner("در حال پردازش ..."):
-      response = model.generate_content(
-          json.dumps(input_json, ensure_ascii=False),
-          temperature=0.1,          # مدل را پایدار و دقیق نگه می‌دارد
-          top_p=0.95,
-          candidate_count=1,
-          max_output_tokens=4096    # برای خروجی JSON طولانی
-      )
+      response = model.generate_content(json.dumps(input_json, ensure_ascii=False))
+
 
 
     try:
