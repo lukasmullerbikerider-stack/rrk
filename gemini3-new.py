@@ -130,12 +130,14 @@ if st.button("🚀 پردازش با Gemini 3.0"):
     )
 
     with st.spinner("در حال پردازش ..."):
-        response = model.generate_content(
-            json.dumps(input_json, ensure_ascii=False),
-            thinking_level="high",
-            temperature=0.1,
-            max_output_tokens=4096
-        )
+      response = model.generate_content(
+          json.dumps(input_json, ensure_ascii=False),
+          temperature=0.1,          # مدل را پایدار و دقیق نگه می‌دارد
+          top_p=0.95,
+          candidate_count=1,
+          max_output_tokens=4096    # برای خروجی JSON طولانی
+      )
+
 
     try:
         final_data = json.loads(response.text)
