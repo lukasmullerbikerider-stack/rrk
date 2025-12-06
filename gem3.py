@@ -15,7 +15,7 @@ st.markdown("با استفاده از **Gemini 2.0/3.0** و قابلیت **Think
 # --- Sidebar ---
 st.sidebar.header("تنظیمات")
 api_key = st.sidebar.text_input("Gemini API Key", type="password")
-model_name = st.sidebar.selectbox("انتخاب مدل", ["gemini-3-pro-preview", "gemini-2.5-flash"])
+model_name = st.sidebar.selectbox("انتخاب مدل", ["gemini-2.5-pro", "gemini-2.5-flash"])
 uploaded_file = st.sidebar.file_uploader("آپلود فایل JSON روزنامه رسمی", type="json")
 
 # --- Helper Functions ---
