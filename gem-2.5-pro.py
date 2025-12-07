@@ -1,31 +1,54 @@
+import streamlit as st
 import json
 import time
-import streamlit as st
+import re
 from google import genai
 from google.genai import types
 
+# =========================
+# ✅ تنظیمات اصلی
+# =========================
 
-def analyze_ads_with_gemini(api_key, model_id, ads_list):
-    client = genai.Client(api_key=api_key)
+MODEL_ID = "gemini-2.5-pro"
+MAX_RETRIES = 3
+BATCH_SIZE = 5
+SLEEP_BETWEEN_BATCH = 2
 
-    # --- SYSTEM PROMPT ---
-    prompt_text = """
-You are an expert Legal Analyst for Iranian Official Gazette (Roznameh Rasmi).
+# =========================
+# ✅ پرامپت
+# =========================
 
-Your Task: Analyze the list of company advertisement texts provided in JSON format.
+PROMPT_TEXT = """
+You are an expert Legal Analyst for Iranian Official Gazette.
 
-Extract the following information for each appointed individual or entity:
-1. person_name
-2. national_id
-3. role_raw (EXACT Persian text)
-4. role_standardized (One of: ["مدیرعامل", "رئیس هیئت مدیره", "نایب رئیس هیئت مدیره", "عضو هیئت مدیره", "مدیرعامل و عضو هیئت مدیره", "بازرس اصلی", "بازرس علی‌البدل"])
-5. start_date (YYYY/MM/DD Persian)
-6. end_date (If 2 years → +2 years, If 1 year → +1 year)
-7. gazette_no
+For EACH appointment extract:
+- person_name
+- national_id
+- role_raw (exact Persian)
+- role_standardized: one of
+STANDARD_ROLES = [
+    "مدیرعامل",
+    "رئیس هیئت مدیره",
+    "نایب رئیس هیئت مدیره",
+    "عضو هیئت مدیره",
+    "عضو هیئت مدیره غیرموظف",
+    "مدیرعامل و عضو هیئت مدیره",
+    "قائم مقام مدیرعامل",
+    "مدیر اجرایی",
+    "مدیر مالی",
+    "صاحب امضا",
+    "بازرس اصلی",
+    "بازرس علی‌البدل",
+    "مدیر تصفیه"
+]
 
-STRICT JSON OUTPUT ONLY. No explanation.
+- start_date (YYYY/MM/DD Persian)
+- end_date:
+  +2 years for directors/CEO
+  +1 year for inspectors
+- gazette_no
 
-Schema:
+Return STRICT JSON only:
 {
   "results": [
     {
@@ -41,50 +64,197 @@ Schema:
     }
   ]
 }
+
+INPUT:
 """
 
-    # --- TOKEN OPTIMIZATION ---
-    simplified_ads = [
-        {
-            "text": ad.get("متن آگهی"),
-            "date": ad.get("تاریخ روزنامه"),
-            "number": ad.get("شماره روزنامه"),
-            "company_id": ad.get("شناسه ملی شرکت"),
-            "company_name": ad.get("نام شرکت")
-        }
-        for ad in ads_list
-    ]
+# =========================
+# ✅ نرمال‌سازی فارسی و کد ملی
+# =========================
 
-    full_prompt = prompt_text + "\nINPUT DATA:\n" + json.dumps(
-        simplified_ads, ensure_ascii=False, separators=(",", ":")
-    )
+def normalize_persian_text(text):
+    if not text:
+        return ""
+    text = str(text)
+    replacements = {
+        "ي": "ی",
+        "ك": "ک",
+        "ۀ": "ه",
+        "ة": "ه",
+        "ؤ": "و",
+        "إ": "ا",
+        "أ": "ا",
+        "ء": "",
+    }
 
-    # --- RETRY SAFE GUARD FOR 429 ---
-    MAX_RETRIES = 3
+    for ar, fa in replacements.items():
+        text = text.replace(ar, fa)
 
+    text = text.replace("\u200c", " ")
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[-–—_]", "", text)
+    text = re.sub(r"[^\w\s]", "", text)
+
+    return text.strip()
+
+
+def normalize_national_id(nid):
+    if not nid:
+        return ""
+
+    nid = normalize_persian_text(nid)
+    nid = re.sub(r"\D", "", nid)
+
+    if len(nid) != 10:
+        return ""
+
+    if len(set(nid)) == 1:
+        return ""
+
+    return nid
+
+# =========================
+# ✅ ابزارها
+# =========================
+
+def smart_truncate(text, limit=800):
+    if not text:
+        return ""
+    return text[:limit]
+
+
+def batch_list(lst, size):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
+
+
+def extract_json_safe(text):
+    match = re.search(r"\{.*\}", text, re.S)
+    if match:
+        return json.loads(match.group())
+    raise ValueError("JSON not found in model output")
+
+
+def prepare_ads(raw_ads):
+    simplified = []
+
+    for ad in raw_ads:
+        simplified.append({
+            "text": smart_truncate(normalize_persian_text(ad.get("متن آگهی"))),
+            "company_name": normalize_persian_text(ad.get("نام شرکت")),
+            "company_id": normalize_national_id(ad.get("شناسه ملی شرکت")),
+            "gazette_no": normalize_persian_text(ad.get("شماره روزنامه")),
+            "date": normalize_persian_text(ad.get("تاریخ روزنامه"))
+        })
+
+    return simplified
+
+
+def merge_duplicate_persons(results):
+    merged = {}
+
+    for item in results:
+        name_key = normalize_persian_text(item.get("person_name"))
+        nid_key = normalize_national_id(item.get("national_id"))
+
+        unique_key = nid_key if nid_key else name_key
+
+        if unique_key not in merged:
+            item["person_name"] = name_key
+            item["national_id"] = nid_key
+            merged[unique_key] = item
+
+    return list(merged.values())
+
+
+def call_gemini_safe(client, full_prompt):
     for attempt in range(MAX_RETRIES):
         try:
-            with st.spinner("در حال تحلیل با Gemini 2.5 Pro ..."):
-                response = client.models.generate_content(
-                    model=model_id,  # ✅ gemini-2.5-pro
-                    contents=full_prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.1,
-                        max_output_tokens=4096
-                    ),
-                )
-
-                return json.loads(response.text)
+            response = client.models.generate_content(
+                model=MODEL_ID,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                    max_output_tokens=4096
+                ),
+            )
+            return extract_json_safe(response.text)
 
         except Exception as e:
-            if "429" in str(e):
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                 wait_time = 15 * (attempt + 1)
-                st.warning(f"محدودیت Gemini! تلاش مجدد تا {wait_time} ثانیه...")
+                st.warning(f"⚠️ محدودیت جمینی! تلاش مجدد تا {wait_time} ثانیه...")
                 time.sleep(wait_time)
             else:
-                st.error(f"خطای غیرمنتظره: {e}")
+                st.error(f"❌ خطای سیستمی: {e}")
                 return None
 
-    st.error("❌ پس از چند تلاش، محدودیت Gemini برطرف نشد.")
+    st.error("❌ سهمیه Gemini 2.5 Pro هنوز آزاد نشده است.")
     return None
+
+# =========================
+# ✅ رابط کاربری Streamlit
+# =========================
+
+st.set_page_config(page_title="تحلیل روزنامه رسمی با Gemini 2.5 Pro", layout="centered")
+
+st.title("📄 تحلیل هوشمند آگهی‌های روزنامه رسمی")
+st.write("آپلود فایل ورودی JSON → تحلیل با Gemini 2.5 Pro → دانلود خروجی")
+
+api_key = st.text_input("🔑 API Key جمینی را وارد کنید:", type="password")
+
+uploaded_file = st.file_uploader("📤 فایل ورودی JSON آگهی‌ها را آپلود کنید:", type=["json"])
+
+if uploaded_file and api_key:
+
+    try:
+        raw_ads = json.load(uploaded_file)
+        st.success(f"✅ فایل با موفقیت بارگذاری شد | تعداد آگهی‌ها: {len(raw_ads)}")
+    except Exception:
+        st.error("❌ فایل JSON معتبر نیست")
+        st.stop()
+
+    if st.button("🚀 شروع تحلیل با Gemini 2.5 Pro"):
+
+        client = genai.Client(api_key=api_key)
+        simplified_ads = prepare_ads(raw_ads)
+
+        all_results = []
+        progress = st.progress(0)
+        total_batches = (len(simplified_ads) // BATCH_SIZE) + 1
+
+        batch_counter = 0
+
+        for batch in batch_list(simplified_ads, BATCH_SIZE):
+
+            batch_counter += 1
+            st.write(f"🔄 در حال پردازش Batch {batch_counter} از {total_batches}")
+
+            full_prompt = PROMPT_TEXT + json.dumps(
+                batch, ensure_ascii=False, separators=(",", ":")
+            )
+
+            data = call_gemini_safe(client, full_prompt)
+
+            if data and "results" in data:
+                all_results.extend(data["results"])
+
+            progress.progress(batch_counter / total_batches)
+            time.sleep(SLEEP_BETWEEN_BATCH)
+
+        final_output = {
+            "results": merge_duplicate_persons(all_results)
+        }
+
+        st.success("✅ تحلیل کامل شد!")
+
+        st.download_button(
+            label="⬇️ دانلود فایل خروجی JSON",
+            data=json.dumps(final_output, ensure_ascii=False, indent=2),
+            file_name="output_analyzed.json",
+            mime="application/json"
+        )
+
+else:
+    st.warning("⚠️ لطفاً API Key و فایل ورودی را وارد کنید.")
