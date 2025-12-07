@@ -10,12 +10,12 @@ import jdatetime
 st.set_page_config(page_title="تحلیلگر حقوقی هوشمند (GenAI SDK)", layout="wide")
 
 st.title("⚖️ تحلیلگر پیشرفته روزنامه رسمی")
-st.markdown("با استفاده از **Gemini 2.0/3.0** و قابلیت **Thinking** برای استخراج دقیق سمت‌های حقوقی")
+st.markdown("برای استخراج دقیق سمت‌های حقوقی")
 
 # --- Sidebar ---
 st.sidebar.header("تنظیمات")
-api_key = st.sidebar.text_input("Gemini API Key", type="password")
-model_name = st.sidebar.selectbox("انتخاب مدل", ["gemini-2.5-pro", "gemini-2.5-flash"])
+api_key = st.sidebar.text_input("Key", type="password")
+model_name = "gemini-2.5-pro"
 uploaded_file = st.sidebar.file_uploader("آپلود فایل JSON روزنامه رسمی", type="json")
 
 # --- Helper Functions ---
@@ -95,7 +95,6 @@ def analyze_ads_advanced(ads_list, api_key, model_id):
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     # Enable Thinking for complex logic extraction
-                    thinking_config=types.ThinkingConfig(thinking_level="low") if "thinking" in model_id else None
                 ),
             )
             return json.loads(response.text)
@@ -117,7 +116,7 @@ if uploaded_file and api_key:
     if st.button("اجرای تحلیل هوشمند"):
         # Filter raw data for context (optional: send all to let AI decide, but sending relevant helps tokens)
         # Here we send all because names might change slightly
-        
+        model_name = "gemini-2.5-pro"
         result_json = analyze_ads_advanced(data, api_key, model_name)
         
         if result_json and "results" in result_json:
