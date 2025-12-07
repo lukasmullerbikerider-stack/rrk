@@ -1,0 +1,492 @@
+import streamlit as st
+import json
+import pandas as pd
+from datetime import datetime, timedelta
+import plotly.graph_objects as go
+import plotly.express as px
+from persiantools.jdatetime import JalaliDate
+
+# تنظیمات صفحه
+st.set_page_config(
+    page_title="تایم‌لاین اعضای شرکت",
+    page_icon="🏢",
+    layout="wide"
+)
+
+# استایل CSS برای راست به چپ کامل
+st.markdown("""
+<style>
+    @import url('https://v1.fontapi.ir/css/Vazir');
+    
+    * {
+        font-family: 'Vazir', Tahoma, sans-serif !important;
+    }
+    
+    .stApp {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .main .block-container {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    div[data-testid="stMetricValue"] {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        direction: rtl;
+        gap: 10px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        direction: rtl;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        text-align: right;
+        direction: rtl;
+    }
+    
+    .stButton button {
+        direction: rtl;
+    }
+    
+    .stSelectbox, .stTextInput {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .stRadio > div {
+        direction: rtl;
+    }
+    
+    label {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .stExpander {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .stDownloadButton {
+        direction: rtl;
+    }
+    
+    code {
+        direction: ltr !important;
+        text-align: left !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+def shamsi_to_gregorian(shamsi_date):
+    """تبدیل تاریخ شمسی به میلادی"""
+    try:
+        if not shamsi_date or shamsi_date == 'نامشخص':
+            return None
+        parts = shamsi_date.split('/')
+        year = int(parts[0])
+        month = int(parts[1])
+        day = int(parts[2])
+        jalali = JalaliDate(year, month, day)
+        gregorian = jalali.to_gregorian()
+        return gregorian
+    except:
+        return None
+
+def process_members(members_data):
+    """پردازش و گروه‌بندی اعضا"""
+    member_dict = {}
+    
+    for member in members_data:
+        key = member.get('کد ملی') or member.get('نام')
+        
+        if key not in member_dict:
+            member_dict[key] = {
+                'نام': member['نام'],
+                'کد ملی': member.get('کد ملی', 'نامشخص'),
+                'سمت‌ها': []
+            }
+        
+        # تعیین دسته‌بندی
+        سمت = member.get('سمت_دقیق', '')
+        if 'بازرس' in سمت:
+            category = 'نظارت'
+        elif any(x in سمت for x in ['مدیرعامل', 'رئیس', 'نایب']):
+            category = 'مدیریت'
+        else:
+            category = 'هیئت مدیره'
+        
+        member_dict[key]['سمت‌ها'].append({
+            'سمت': member.get('سمت_استاندارد', member.get('سمت_دقیق')),
+            'تاریخ شروع': member.get('تاریخ شروع'),
+            'تاریخ پایان': member.get('تاریخ پایان'),
+            'دسته': category,
+            'شماره روزنامه': member.get('شماره روزنامه')
+        })
+    
+    return list(member_dict.values())
+
+def get_color_by_category(category):
+    """تعیین رنگ بر اساس دسته"""
+    colors = {
+        'مدیریت': '#3B82F6',
+        'هیئت مدیره': '#10B981',
+        'نظارت': '#8B5CF6'
+    }
+    return colors.get(category, '#6B7280')
+
+def get_color_by_role(role):
+    """تعیین رنگ بر اساس سمت"""
+    if 'رئیس' in role and 'نایب' not in role:
+        return '#EF4444'
+    elif 'نایب' in role:
+        return '#F97316'
+    elif 'مدیرعامل' in role:
+        return '#2563EB'
+    elif 'بازرس اصلی' in role:
+        return '#7C3AED'
+    elif 'بازرس' in role:
+        return '#A78BFA'
+    return '#10B981'
+
+def create_timeline_chart(members, color_mode='category'):
+    """ایجاد نمودار تایم‌لاین با تاریخ شمسی"""
+    data = []
+    
+    for member in members:
+        for position in member['سمت‌ها']:
+            start_date = shamsi_to_gregorian(position['تاریخ شروع'])
+            end_date = shamsi_to_gregorian(position['تاریخ پایان'])
+            
+            if start_date and end_date:
+                data.append({
+                    'نام': member['نام'],
+                    'سمت': position['سمت'],
+                    'شروع_شمسی': position['تاریخ شروع'],
+                    'پایان_شمسی': position['تاریخ پایان'],
+                    'Start': start_date,
+                    'Finish': end_date,
+                    'دسته': position['دسته']
+                })
+    
+    if not data:
+        return None
+    
+    df = pd.DataFrame(data)
+    
+    # تعیین رنگ
+    if color_mode == 'category':
+        color_discrete_map = {
+            'مدیریت': '#3B82F6',
+            'هیئت مدیره': '#10B981',
+            'نظارت': '#8B5CF6'
+        }
+        color_col = 'دسته'
+    else:
+        # برای حالت سمت، رنگ‌های دستی تعیین می‌کنیم
+        df['رنگ'] = df['سمت'].apply(get_color_by_role)
+        color_discrete_map = None
+        color_col = 'سمت'
+    
+    fig = px.timeline(
+        df,
+        x_start="Start",
+        x_end="Finish",
+        y="نام",
+        color=color_col,
+        hover_data={
+            'سمت': True,
+            'شروع_شمسی': True,
+            'پایان_شمسی': True,
+            'دسته': True,
+            'Start': False,
+            'Finish': False
+        },
+        color_discrete_map=color_discrete_map if color_mode == 'category' else None,
+        labels={
+            'نام': 'نام',
+            'سمت': 'سمت',
+            'شروع_شمسی': 'تاریخ شروع',
+            'پایان_شمسی': 'تاریخ پایان',
+            'دسته': 'دسته'
+        }
+    )
+    
+    fig.update_layout(
+        height=max(400, len(members) * 60),
+        xaxis_title='',
+        yaxis_title='',
+        showlegend=True,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Vazir, Tahoma", size=12),
+        yaxis={'categoryorder': 'total ascending'},
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        margin=dict(r=20, l=150, t=50, b=50)
+    )
+    
+    # تبدیل برچسب‌های محور X به تاریخ شمسی
+    fig.update_xaxes(
+        tickformat='%Y-%m-%d',
+        dtick="M3"  # هر 3 ماه
+    )
+    
+    return fig
+
+# عنوان اصلی
+st.title("🏢 تایم‌لاین اعضای شرکت")
+st.markdown("---")
+
+# آپلود فایل
+uploaded_file = st.file_uploader(
+    "📁 فایل JSON اطلاعات شرکت را آپلود کنید",
+    type=['json'],
+    help="فایل JSON باید شامل نام شرکت، شناسه و لیست اعضا باشد"
+)
+
+if uploaded_file is not None:
+    try:
+        # خواندن فایل
+        company_data = json.load(uploaded_file)
+        
+        # بررسی ساختار
+        if 'نام شرکت' not in company_data or 'اعضای شرکت' not in company_data:
+            st.error("❌ فرمت فایل صحیح نیست. لطفاً فایل JSON با فرمت صحیح آپلود کنید.")
+            st.stop()
+        
+        # نمایش اطلاعات شرکت
+        st.success(f"✅ فایل با موفقیت بارگذاری شد")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.header(f"🏢 {company_data['نام شرکت']}")
+        with col2:
+            st.metric("شناسه شرکت", company_data.get('شناسه شرکت', 'نامشخص'))
+        
+        st.markdown("---")
+        
+        # پردازش اعضا
+        members = process_members(company_data['اعضای شرکت'])
+        key_members = [m for m in members if any(p['دسته'] == 'مدیریت' for p in m['سمت‌ها'])]
+        
+        # نمایش آمار
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📊 تعداد کل اعضا", len(members))
+        with col2:
+            st.metric("👔 مدیران کلیدی", len(key_members))
+        with col3:
+            total_positions = sum(len(m['سمت‌ها']) for m in members)
+            st.metric("📋 مجموع سمت‌ها", total_positions)
+        
+        st.markdown("---")
+        
+        # تب‌های اصلی
+        tab1, tab2, tab3 = st.tabs(["📈 نمودار تایم‌لاین", "👥 اعضای کلیدی", "📋 همه اعضا"])
+        
+        with tab1:
+            st.subheader("نمودار تایم‌لاین اعضا (تاریخ شمسی)")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                view_mode = st.radio(
+                    "نمایش:",
+                    ["همه اعضا", "فقط مدیران"],
+                    horizontal=True,
+                    key="view_mode"
+                )
+            with col2:
+                color_mode = st.radio(
+                    "رنگ‌بندی:",
+                    ["بر اساس دسته", "بر اساس سمت"],
+                    horizontal=True,
+                    key="color_mode"
+                )
+            
+            display_members = key_members if view_mode == "فقط مدیران" else members
+            color_type = 'category' if color_mode == "بر اساس دسته" else 'role'
+            
+            if display_members:
+                fig = create_timeline_chart(display_members, color_type)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # راهنمای رنگ‌ها
+                    st.markdown("#### راهنمای رنگ‌ها:")
+                    if color_type == 'category':
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.markdown("🔵 **مدیریت**")
+                        with col2:
+                            st.markdown("🟢 **هیئت مدیره**")
+                        with col3:
+                            st.markdown("🟣 **نظارت**")
+                    else:
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.markdown("🔴 **رئیس**")
+                        with col2:
+                            st.markdown("🟠 **نایب رئیس**")
+                        with col3:
+                            st.markdown("🔵 **مدیرعامل**")
+                        with col4:
+                            st.markdown("🟣 **بازرس**")
+                else:
+                    st.warning("⚠️ خطا در ایجاد نمودار. لطفاً تاریخ‌ها را بررسی کنید.")
+            else:
+                st.warning("⚠️ داده‌ای برای نمایش وجود ندارد")
+        
+        with tab2:
+            st.subheader("👔 اعضای کلیدی (مدیران)")
+            
+            if not key_members:
+                st.warning("⚠️ عضو کلیدی یافت نشد")
+            else:
+                for member in key_members:
+                    with st.expander(f"**{member['نام']}** - کد ملی: {member['کد ملی']}"):
+                        for i, pos in enumerate(member['سمت‌ها'], 1):
+                            color = get_color_by_role(pos['سمت'])
+                            st.markdown(f"""
+                            <div style='background-color: {color}20; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-right: 4px solid {color}; direction: rtl; text-align: right;'>
+                                <strong style='color: {color}; font-size: 16px;'>سمت {i}: {pos['سمت']}</strong><br>
+                                📅 <strong>تاریخ شروع:</strong> {pos['تاریخ شروع']} (شمسی)<br>
+                                📅 <strong>تاریخ پایان:</strong> {pos['تاریخ پایان']} (شمسی)<br>
+                                🏷️ <strong>دسته:</strong> {pos['دسته']}<br>
+                                📰 <strong>روزنامه:</strong> {pos['شماره روزنامه']}
+                            </div>
+                            """, unsafe_allow_html=True)
+        
+        with tab3:
+            st.subheader("📋 همه اعضای شرکت")
+            
+            # فیلتر بر اساس دسته
+            categories = ['همه'] + list(set(p['دسته'] for m in members for p in m['سمت‌ها']))
+            selected_category = st.selectbox("🔍 فیلتر بر اساس دسته:", categories)
+            
+            filtered_members = members
+            if selected_category != 'همه':
+                filtered_members = [
+                    m for m in members 
+                    if any(p['دسته'] == selected_category for p in m['سمت‌ها'])
+                ]
+            
+            # جستجو
+            search_term = st.text_input("🔎 جستجوی نام عضو:", "")
+            if search_term:
+                filtered_members = [
+                    m for m in filtered_members 
+                    if search_term in m['نام']
+                ]
+            
+            st.write(f"**تعداد نتایج:** {len(filtered_members)} عضو")
+            
+            for member in filtered_members:
+                with st.expander(f"**{member['نام']}** - کد ملی: {member['کد ملی']} ({len(member['سمت‌ها'])} سمت)"):
+                    for i, pos in enumerate(member['سمت‌ها'], 1):
+                        color = get_color_by_category(pos['دسته'])
+                        st.markdown(f"""
+                        <div style='background-color: {color}20; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-right: 4px solid {color}; direction: rtl; text-align: right;'>
+                            <strong style='color: {color}; font-size: 16px;'>سمت {i}: {pos['سمت']}</strong><br>
+                            📅 <strong>تاریخ شروع:</strong> {pos['تاریخ شروع']} (شمسی)<br>
+                            📅 <strong>تاریخ پایان:</strong> {pos['تاریخ پایان']} (شمسی)<br>
+                            🏷️ <strong>دسته:</strong> {pos['دسته']}<br>
+                            📰 <strong>روزنامه:</strong> {pos['شماره روزنامه']}
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        # دانلود گزارش
+        st.markdown("---")
+        st.subheader("📥 دانلود گزارش")
+        
+        # تبدیل به DataFrame برای دانلود
+        report_data = []
+        for member in members:
+            for pos in member['سمت‌ها']:
+                report_data.append({
+                    'نام': member['نام'],
+                    'کد ملی': member['کد ملی'],
+                    'سمت': pos['سمت'],
+                    'تاریخ شروع (شمسی)': pos['تاریخ شروع'],
+                    'تاریخ پایان (شمسی)': pos['تاریخ پایان'],
+                    'دسته': pos['دسته'],
+                    'شماره روزنامه': pos['شماره روزنامه']
+                })
+        
+        df_report = pd.DataFrame(report_data)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            csv = df_report.to_csv(index=False).encode('utf-8-sig')
+            st.download_button(
+                label="📊 دانلود گزارش CSV",
+                data=csv,
+                file_name=f"گزارش_{company_data['نام شرکت']}.csv",
+                mime="text/csv"
+            )
+        
+    except json.JSONDecodeError:
+        st.error("❌ خطا در خواندن فایل JSON. لطفاً یک فایل معتبر آپلود کنید.")
+    except Exception as e:
+        st.error(f"❌ خطا: {str(e)}")
+        st.exception(e)
+        
+else:
+    # راهنمای فرمت فایل
+    st.info("👆 لطفاً فایل JSON خود را آپلود کنید")
+    
+    st.markdown("### 📝 فرمت فایل JSON:")
+    st.code("""
+{
+  "نام شرکت": "داده پردازان بنیان آوا",
+  "شناسه شرکت": "10102487822",
+  "اعضای شرکت": [
+    {
+      "نام": "نام عضو",
+      "کد ملی": "0123456789",
+      "سمت_دقیق": "مدیرعامل و عضو هیئت مدیره",
+      "سمت_استاندارد": "مدیرعامل",
+      "تاریخ شروع": "1403/01/01",
+      "تاریخ پایان": "1405/01/01",
+      "شماره روزنامه": "12345"
+    }
+  ]
+}
+    """, language='json')
+    
+    st.markdown("### ✨ ویژگی‌های برنامه:")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        - 📊 نمودار تایم‌لاین تعاملی
+        - 👥 نمایش اعضای کلیدی
+        - 📋 لیست کامل همه اعضا
+        - 🔍 جستجو و فیلتر
+        """)
+    with col2:
+        st.markdown("""
+        - 📅 تاریخ‌های شمسی
+        - 🎨 رنگ‌بندی بر اساس سمت/دسته
+        - 📥 دانلود گزارش CSV
+        - 🇮🇷 کاملاً فارسی و راست‌چین
+        """)
+
+# فوتر
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: #666; padding: 20px; direction: rtl;'>
+    ساخته شده با ❤️ برای تحلیل داده‌های شرکت‌ها
+</div>
+""", unsafe_allow_html=True)
