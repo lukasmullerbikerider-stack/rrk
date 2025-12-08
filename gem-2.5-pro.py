@@ -9,7 +9,7 @@ from google.genai import types
 # ✅ تنظیمات اصلی
 # =========================
 
-MODEL_ID = "gemini-2.5-pro"
+MODEL_ID = "gemini-2.5-flash"
 MAX_RETRIES = 3
 BATCH_SIZE = 5
 SLEEP_BETWEEN_BATCH = 2
