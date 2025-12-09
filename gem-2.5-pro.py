@@ -200,9 +200,9 @@ def call_gemini_safe(client, full_prompt):
 st.set_page_config(page_title="تحلیل روزنامه رسمی با Gemini 2.5 Pro", layout="centered")
 
 st.title("📄 تحلیل هوشمند آگهی‌های روزنامه رسمی")
-st.write("آپلود فایل ورودی JSON → تحلیل با Gemini 2.5 Pro → دانلود خروجی")
+st.write("آپلود فایل ورودی JSON → تحلیل هوشمند → دانلود خروجی")
 
-api_key = st.text_input("🔑 API Key جمینی را وارد کنید:", type="password")
+api_key = st.text_input("🔑 Key را وارد کنید:", type="password")
 
 uploaded_file = st.file_uploader("📤 فایل ورودی JSON آگهی‌ها را آپلود کنید:", type=["json"])
 
@@ -215,7 +215,7 @@ if uploaded_file and api_key:
         st.error("❌ فایل JSON معتبر نیست")
         st.stop()
 
-    if st.button("🚀 شروع تحلیل با Gemini 2.5 Pro"):
+    if st.button("🚀 شروع تحلیل با هوش مصنوعی"):
 
         client = genai.Client(api_key=api_key)
         simplified_ads = prepare_ads(raw_ads)
