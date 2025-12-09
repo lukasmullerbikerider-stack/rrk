@@ -16,6 +16,7 @@ kaleido
 fpdf2
 persiantools
 xlsxwriter
+python-dateutil
 
 
 
