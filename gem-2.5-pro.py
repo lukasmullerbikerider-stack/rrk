@@ -190,14 +190,14 @@ def call_gemini_safe(client, full_prompt):
                 st.error(f"❌ خطای سیستمی: {e}")
                 return None
 
-    st.error("❌ سهمیه Gemini 2.5 Pro هنوز آزاد نشده است.")
+    st.error("❌ سهمیه هوش هنوز آزاد نشده است.")
     return None
 
 # =========================
 # ✅ رابط کاربری Streamlit
 # =========================
 
-st.set_page_config(page_title="تحلیل روزنامه رسمی با Gemini 2.5 Pro", layout="centered")
+st.set_page_config(page_title="تحلیل روزنامه رسمی هوشمند", layout="centered")
 
 st.title("📄 تحلیل هوشمند آگهی‌های روزنامه رسمی")
 st.write("آپلود فایل ورودی JSON → تحلیل هوشمند → دانلود خروجی")
