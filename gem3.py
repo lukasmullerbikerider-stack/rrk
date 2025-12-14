@@ -15,7 +15,7 @@ st.markdown("برای استخراج دقیق سمت‌های حقوقی")
 # --- Sidebar ---
 st.sidebar.header("تنظیمات")
 api_key = st.sidebar.text_input("Key", type="password")
-model_name = "gemini-2.5-pro"
+model_name = "gemini-2.5-flash"
 uploaded_file = st.sidebar.file_uploader("آپلود فایل JSON روزنامه رسمی", type="json")
 
 # --- Helper Functions ---
@@ -116,7 +116,7 @@ if uploaded_file and api_key:
     if st.button("اجرای تحلیل هوشمند"):
         # Filter raw data for context (optional: send all to let AI decide, but sending relevant helps tokens)
         # Here we send all because names might change slightly
-        model_name = "gemini-2.5-pro"
+        model_name = "gemini-2.5-flash"
         result_json = analyze_ads_advanced(data, api_key, model_name)
         
         if result_json and "results" in result_json:
