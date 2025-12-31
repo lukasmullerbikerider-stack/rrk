@@ -177,8 +177,7 @@ def call_gemini_once(client, full_prompt: str) -> dict:
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=TEMPERATURE,
-					thinking_config=types.ThinkingConfig(thinking_level="low")
+                    temperature=TEMPERATURE
                 ),
             )
             return extract_json_safe(response.text)
