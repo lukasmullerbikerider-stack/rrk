@@ -215,7 +215,7 @@ if api_key and uploaded_file:
 
     if st.button("🚀 اجرای تحلیل (Single Call)"):
 
-        client = genai.Client(api_key=api_key, http_options={"base_url": "https://api.avalai.ir"}
+        client = genai.Client(api_key=api_key, http_options={"base_url": "https://api.avalai.ir"})
 
         prepared_ads = prepare_ads(raw_ads)
 
