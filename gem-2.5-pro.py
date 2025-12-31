@@ -32,7 +32,6 @@ STANDARD_ROLES = [
     "نایب رئیس هیئت مدیره",
     "عضو هیئت مدیره",
     "عضو هیئت مدیره غیرموظف",
-    "مدیرعامل و عضو هیئت مدیره",
     "قائم مقام مدیرعامل",
     "مدیر اجرایی",
     "مدیر مالی",
@@ -43,9 +42,7 @@ STANDARD_ROLES = [
 ]
 
 - start_date (YYYY/MM/DD Persian)
-- end_date:
-  +2 years for directors/CEO
-  +1 year for inspectors
+- end_date: (YYYY/MM/DD Persian)
 - gazette_no
 
 Return STRICT JSON only:
